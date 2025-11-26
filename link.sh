@@ -16,6 +16,9 @@ do
     ln -sf $(pwd)/$db ${dir}expansions/$db
   done
 
+  if [[ ! -d ${dir}/script/user-custom ]] then
+    mkdir ${dir}/script/user-custom
+  fi
   #symlink card scripts
   for scr in ./script/*.lua
   do
