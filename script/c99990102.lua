@@ -1,0 +1,150 @@
+--Silk Behe-moth
+local s, id = GetID()
+function s.initial_effect(c)
+  -- discard; special summon from deck
+  local e1 = Effect.CreateEffect(c)
+  e1:SetCategory(CATEGORY_TOGRAVE)
+  e1:SetType(EFFECT_TYPE_IGNITION)
+  e1:SetCode(EVENT_FREE_CHAIN)
+  e1:SetRange(LOCATION_HAND)
+  e1:SetCountLimit(1, {id, 0})
+  e1:SetCost(s.cost1)
+  e1:SetOperation(s.op1)
+  c:RegisterEffect(e1)
+  -- if banished, banish insect, negate onfield to return to gy
+  local e2 = Effect.CreateEffect(c)
+  e2:SetCategory(CATEGORY_TOGRAVE+CATEGORY_DISABLE)
+  e2:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+  e2:SetCode(EVENT_REMOVE)
+  e2:SetProperty(EFFECT_FLAG_DELAY)
+  e2:SetCountLimit(1, {id, 1})
+  e2:SetCost(s.cost2)
+  e2:SetTarget(s.tg2)
+  e2:SetOperation(s.op2)
+  c:RegisterEffect(e2)
+  -- if sent to GY, banish target insect to special summon
+  local e3 = Effect.CreateEffect(c)
+  e3:SetCategory(CATEGORY_REMOVE+CATEGORY_SPECIAL_SUMMON)
+  e3:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+  e3:SetCode(EVENT_TO_GRAVE)
+  e3:SetProperty(EFFECT_FLAG_DELAY)
+  e3:SetCountLimit(1, {id, 2})
+  e3:SetTarget(s.tg3)
+  e3:SetOperation(s.op3)
+  c:RegisterEffect(e3)
+end
+
+s.listed_series = { 0xa056 }
+
+-- discard; special from deck
+function s.filter1(c, e, tp)
+  return c:IsSetCard(0xa056) 
+    and c:IsCanBeSpecialSummoned(e, 0, tp, false, false, POS_FACEUP)
+    and c:GetCode() ~= id -- cannot be "Silk Behe-moth"
+end
+function s.cost1(e, tp, eg, ep, ev, re, r, rp, chk)
+  local c = e:GetHandler()
+
+  if chk == 0 then 
+    return c:IsDiscardable()
+      and Duel.GetLocationCount(tp, LOCATION_MZONE) > 0
+      and Duel.IsExistingMatchingCard(s.filter1, tp, LOCATION_DECK, 0, 1, nil, e, tp)
+  end
+  
+  Duel.SendtoGrave(c,REASON_COST+REASON_DISCARD)
+end
+function s.op1(e, tp, eg, ep, ev, re, r, rp)
+  Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_SPSUMMON)
+  local g = Duel.SelectMatchingCard(tp, s.filter1, tp, LOCATION_DECK, 0, 1, 1, nil, e, tp)
+  if #g > 0 then
+    Duel.SpecialSummon(g, 0, tp, tp, false, false, POS_FACEUP)
+  end
+  -- if activated, insect-locked
+  local e1 = Effect.CreateEffect(e:GetHandler())
+	e1:SetType(EFFECT_TYPE_FIELD)
+	e1:SetProperty(EFFECT_FLAG_PLAYER_TARGET+EFFECT_FLAG_OATH)
+	e1:SetCode(EFFECT_CANNOT_SPECIAL_SUMMON)
+	e1:SetReset(RESET_PHASE|PHASE_END)
+	e1:SetTargetRange(1,0)
+	e1:SetTarget(s.splimit)
+	Duel.RegisterEffect(e1,tp)
+end
+function s.splimit(e,c)
+  return not c:IsRace(RACE_INSECT)
+end
+
+
+-- if banished, banish insect, negate onfield to return to gy
+function s.filter2(c)
+  return c:IsRace(RACE_INSECT) and c:IsAbleToRemoveAsCost()
+end
+function s.cost2(e, tp, eg, ep, ev, re, r, rp, chk)
+  if chk == 0 then
+    return Duel.IsExistingMatchingCard(s.filter2, tp, LOCATION_GRAVE, 0, 1, nil)
+  end
+  Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_REMOVE)
+  local rmc = Duel.SelectMatchingCard(tp, s.filter2, tp, LOCATION_GRAVE, 0, 1, 1, nil):GetFirst()
+  Duel.Remove(rmc, POS_FACEUP, REASON_COST)
+end
+function s.tg2(e, tp, eg, ep, ev, re, r, rp, chk, chkc)
+  local c = e:GetHandler()
+
+	if chkc then return chkc:IsFaceup() and chkc:IsLocation(LOCATION_MZONE) end
+  if chk == 0 then
+    return Duel.IsExistingTarget(Card.IsFaceup, tp, LOCATION_MZONE, LOCATION_MZONE, 1, nil)
+      and Duel.GetLocationCount(tp, LOCATION_MZONE) > 0
+      and c:IsAbleToGrave()
+  end
+  
+  Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_NEGATE)
+  local bc = Duel.SelectTarget(tp, Card.IsFaceup, tp, LOCATION_MZONE, LOCATION_MZONE, 1, 1, nil)
+end
+function s.op2(e, tp, eg, ep, ev, re, r, rp)
+  local c = e:GetHandler()
+  local tc = Duel.GetTargetCards(e):GetFirst()
+  if tc:IsRelateToEffect(e) and tc:IsFaceup() and not tc:IsDisabled() then
+    Duel.NegateRelatedChain(tc, RESET_TURN_SET)   
+		local e1=Effect.CreateEffect(c)
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetCode(EFFECT_DISABLE)
+		e1:SetReset(RESETS_STANDARD)
+		tc:RegisterEffect(e1)
+		local e2=Effect.CreateEffect(c)
+		e2:SetType(EFFECT_TYPE_SINGLE)
+		e2:SetCode(EFFECT_DISABLE_EFFECT)
+		e2:SetValue(RESET_TURN_SET)
+		e2:SetReset(RESETS_STANDARD)
+		tc:RegisterEffect(e2)
+
+    Duel.SendtoGrave(c, REASON_EFFECT)
+  end
+end
+
+-- if sent to GY, banish target insect to special summon
+function s.filter3(c)
+  return c:IsRace(RACE_INSECT)
+end
+function s.tg3(e, tp, eg, ep, ev, re, r, rp, chk, chkc)
+  local c = e:GetHandler()
+
+  if chkc then
+    return chkc:IsLocation(LOCATION_GRAVE) 
+      and Duel.IsPlayerCanRemove(tp, chkc)
+  end
+  if chk == 0 then 
+    return Duel.IsExistingTarget(s.filter3, tp, LOCATION_GRAVE, 0, 1, c)
+  end
+
+  Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_REMOVE)
+  local bc = Duel.SelectTarget(tp, s.filter3, tp, LOCATION_GRAVE, 0, 1, 1, c)
+  if #bc > 0 then
+    Duel.SetOperationInfo(0, CATEGORY_REMOVE, bc, 1, 0, 0)
+  end
+end
+function s.op3(e, tp, eg, ep, ev, re, r, rp)
+  local c = e:GetHandler()
+  local bc = Duel.GetTargetCards(e):GetFirst()
+  if Duel.Remove(bc, POS_FACEUP, REASON_EFFECT) then
+    Duel.SpecialSummon(c, 0, tp, tp, false, false, POS_FACEUP)
+  end
+end
