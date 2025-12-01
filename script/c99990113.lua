@@ -11,7 +11,7 @@ function s.initial_effect(c)
 	e1:SetCost(s.cost1)
 	e1:SetOperation(s.op1)
 	c:RegisterEffect(e1)
-	-- if sent to GY, return banished insects to hand to special summon
+  -- if sent to GY, special then bounce an insect
 	local e2 = Effect.CreateEffect(c)
 	e2:SetCategory(CATEGORY_TOHAND + CATEGORY_SPECIAL_SUMMON)
 	e2:SetType(EFFECT_TYPE_SINGLE + EFFECT_TYPE_TRIGGER_O)
@@ -21,17 +21,22 @@ function s.initial_effect(c)
 	e2:SetTarget(s.tg2)
 	e2:SetOperation(s.op2)
 	c:RegisterEffect(e2)
-  -- quick effect xyz summon
-	local e3 = Effect.CreateEffect(c)
+  -- quick effect fusion summon
+ 	local params={
+    fusfilter=s.fusfilter3,
+    matfilter=Card.IsAbleToRemove,
+    extrafil=s.fextra3,
+    extraop=Fusion.BanishMaterial,
+    extratg=s.extratg3
+  }
+	local e3=Effect.CreateEffect(c)
 	e3:SetDescription(aux.Stringid(id,0))
-	e3:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e3:SetCategory(CATEGORY_SPECIAL_SUMMON+CATEGORY_FUSION_SUMMON)
 	e3:SetType(EFFECT_TYPE_QUICK_O)
 	e3:SetCode(EVENT_FREE_CHAIN)
-	e3:SetHintTiming(0,TIMINGS_CHECK_MONSTER|TIMING_END_PHASE)
-	e3:SetRange(LOCATION_MZONE)
 	e3:SetCountLimit(1)
-  e3:SetTarget(s.tg3)
-  e3:SetOperation(s.op3)
+	e3:SetTarget(Fusion.SummonEffTG(params))
+	e3:SetOperation(Fusion.SummonEffOP(params))
 	c:RegisterEffect(e3)
 end
 
@@ -54,49 +59,30 @@ function s.op1(e, tp, eg, ep, ev, re, r, rp)
 	Duel.SendtoGrave(c, REASON_EFFECT)
 end
 
--- if sent to GY, return banished insects to hand to special summon
+-- if sent to GY, special summon, then bounce and insect
 function s.filter2(c)
 	return c:IsRace(RACE_INSECT)
 end
-function s.tg2(e, tp, eg, ep, ev, re, r, rp, chk, chkc)
-	local c = e:GetHandler()
-
-	if chkc then
-		return chkc:IsLocation(LOCATION_REMOVED) and c:IsAbleToHand()
-	end
-	if chk == 0 then
-		return Duel.IsExistingTarget(s.filter2, tp, LOCATION_REMOVED, 0, 1, c)
-	end
-
-	Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_RTOHAND)
-	local bc = Duel.SelectTarget(tp, s.filter2, tp, LOCATION_REMOVED, 0, 1, 2, c)
-	if #bc > 0 then
-		Duel.SetOperationInfo(0, CATEGORY_TOHAND, bc, 1, 0, 0)
-	end
-end
 function s.op2(e, tp, eg, ep, ev, re, r, rp)
 	local c = e:GetHandler()
-	local bc = Duel.GetTargetCards(e)
-	if Duel.SendtoHand(bc, nil, REASON_EFFECT) then
-		Duel.SpecialSummon(c, 0, tp, tp, false, false, POS_FACEUP)
-	end
+  if Duel.SpecialSummon(c, REASON_EFFECT) then
+    Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_RTOHAND)
+    local bc = Duel.SelectMatchingCard(tp, filter2, tp, LOCATION_MZONE, LOCATION_MZONE, 1, 1, nil):GetFirst()
+    Duel.SendtoHand(bc, nil, REASON_EFFECT)
+  end
 end
 
--- quick effect xyz summon
-function s.filter3(c)
-  return c:IsXyzSummonable() and c:IsRace(RACE_INSECT)
+-- quick effect fusion summon
+function s.fusfilter3(c)
+  return c:IsRace(RACE_INSECT)
 end
-function s.tg3(e, tp, eg, ep, ev, re, r, rp, chk)
-	if chk==0 then return Duel.IsExistingMatchingCard(s.filter3, tp, LOCATION_EXTRA, 0, 1, nil) end
-	Duel.SetOperationInfo(0, CATEGORY_SPECIAL_SUMMON, nil, 1, tp, LOCATION_EXTRA)
-end
-function s.op3(e, tp, eg, ep, ev, re, r, rp)
-  local c=e:GetHandler()
-	if not c:IsRelateToEffect(e) then return end
-	local g=Duel.GetMatchingGroup(s.filter3,tp,LOCATION_EXTRA,0,nil)
-	if #g>0 then
-		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
-		local sg=g:Select(tp,1,1,nil)
-		Duel.XyzSummon(tp,sg:GetFirst())
+function s.fextra3()
+	if not Duel.IsPlayerAffectedByEffect(tp,CARD_SPIRIT_ELIMINATION) then
+		return Duel.GetMatchingGroup(Fusion.IsMonsterFilter(Card.IsAbleToRemove),tp,LOCATION_GRAVE,0,nil)
 	end
+	return nil
+end
+function s.extratg3()
+	if chk==0 then return true end
+	Duel.SetOperationInfo(0,CATEGORY_REMOVE,nil,0,tp,LOCATION_HAND|LOCATION_ONFIELD|LOCATION_GRAVE)
 end
