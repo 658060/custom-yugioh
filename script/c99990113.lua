@@ -64,7 +64,7 @@ function s.filter2(c)
 end
 function s.op2(e, tp, eg, ep, ev, re, r, rp)
 	local c = e:GetHandler()
-  if Duel.SpecialSummon(c, REASON_EFFECT) then
+  if Duel.SpecialSummon(c, 0, tp, tp, false, false, POS_FACEUP) then
     Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_RTOHAND)
     local bc = Duel.SelectMatchingCard(tp, filter2, tp, LOCATION_MZONE, LOCATION_MZONE, 1, 1, nil):GetFirst()
     Duel.SendtoHand(bc, nil, REASON_EFFECT)
