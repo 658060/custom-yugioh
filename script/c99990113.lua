@@ -1,4 +1,4 @@
---Emperor Behe-moth
+--Cinnabar Behe-moth
 local s, id = GetID()
 function s.initial_effect(c)
 	-- if banished, banish insect from GY to return to GY
@@ -18,7 +18,6 @@ function s.initial_effect(c)
 	e2:SetCode(EVENT_TO_GRAVE)
 	e2:SetProperty(EFFECT_FLAG_DELAY)
 	e2:SetCountLimit(1, id)
-	e2:SetTarget(s.tg2)
 	e2:SetOperation(s.op2)
 	c:RegisterEffect(e2)
   -- quick effect fusion summon

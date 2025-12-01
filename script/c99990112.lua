@@ -1,4 +1,4 @@
---Emperor Behe-moth
+--Luna Behe-moth
 local s, id = GetID()
 function s.initial_effect(c)
 	-- if banished, banish insect from GY to return to GY
