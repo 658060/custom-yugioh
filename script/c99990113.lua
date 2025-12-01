@@ -76,13 +76,13 @@ end
 function s.fusfilter3(c)
   return c:IsRace(RACE_INSECT)
 end
-function s.fextra3()
+function s.fextra3(e, tp, mg)
 	if not Duel.IsPlayerAffectedByEffect(tp,CARD_SPIRIT_ELIMINATION) then
 		return Duel.GetMatchingGroup(Fusion.IsMonsterFilter(Card.IsAbleToRemove),tp,LOCATION_GRAVE,0,nil)
 	end
 	return nil
 end
-function s.extratg3()
+function s.extratg3(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
 	Duel.SetOperationInfo(0,CATEGORY_REMOVE,nil,0,tp,LOCATION_HAND|LOCATION_ONFIELD|LOCATION_GRAVE)
 end
