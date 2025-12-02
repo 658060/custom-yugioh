@@ -29,6 +29,7 @@ function s.initial_effect(c)
   e3:SetCode(EVENT_TO_GRAVE)
   e3:SetProperty(EFFECT_FLAG_DELAY)
   e3:SetCountLimit(1, {id, 2})
+  e3:SetCondition(s.cond3)
   e3:SetTarget(s.tg3)
   e3:SetOperation(s.op3)
   c:RegisterEffect(e3)
@@ -121,6 +122,9 @@ function s.op2(e, tp, eg, ep, ev, re, r, rp)
 end
 
 -- if sent to GY, banish target insect to special summon
+function s.cond3(e, tp, eg, ep, ev, re, r, rp)
+  return Duel.GetLocationCount(tp, LOCATION_MZONE) > 0
+end
 function s.filter3(c)
   return c:IsRace(RACE_INSECT)
 end
